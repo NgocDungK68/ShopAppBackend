@@ -32,7 +32,7 @@ public class OrderController {
     }
 
     @GetMapping("/{user_id}")
-    public ResponseEntity<?> getOrders(@Valid @PathVariable("user_id") Long user_id) {
+    public ResponseEntity<?> getOrders(@Valid @PathVariable("user_id") Long userId) {
         try {
             return ResponseEntity.ok("Lấy ra danh sách orders từ user_id");
         } catch (Exception e) {
