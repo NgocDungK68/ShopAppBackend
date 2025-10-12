@@ -10,6 +10,7 @@ import com.project.shopapp.model.ProductImage;
 import com.project.shopapp.repository.CategoryRepository;
 import com.project.shopapp.repository.ProductImageRepository;
 import com.project.shopapp.repository.ProductRepository;
+import com.project.shopapp.response.ProductResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -34,6 +35,7 @@ public class ProductService implements IProductService {
                 .name(productDTO.getName())
                 .price(productDTO.getPrice())
                 .thumbnail(productDTO.getThumbnail())
+                .description(productDTO.getDescription())
                 .category(existingCategory)
                 .build();
         return productRepository.save(newProduct);
@@ -42,19 +44,19 @@ public class ProductService implements IProductService {
     @Override
     public Product getProductById(Long productId) throws Exception {
         return productRepository.findById(productId)
-                .orElseThrow(() -> new DataNotFoundException("Cannot find product with id = "+ productId));
+                .orElseThrow(() -> new DataNotFoundException("Cannot find product with id = " + productId));
     }
 
     @Override
-    public Page<Product> getAllProducts(PageRequest pageRequest) {
-        return productRepository.findAll(pageRequest);
+    public Page<ProductResponse> getAllProducts(PageRequest pageRequest) {
+        return productRepository.findAll(pageRequest).map(ProductResponse::fromProduct);
     }
 
     @Override
     public Product updateProduct(Long id, ProductDTO productDTO) throws Exception {
         Product existingProduct = getProductById(id);
 
-        if  (existingProduct != null) {
+        if (existingProduct != null) {
             Category existingCategory = categoryRepository.findById(productDTO.getCategoryId())
                     .orElseThrow(() ->
                             new DataNotFoundException("Cannot find category with id: " + productDTO.getCategoryId()));
@@ -81,7 +83,7 @@ public class ProductService implements IProductService {
 
     @Override
     public ProductImage createProductImage(Long productId, ProductImageDTO productImageDTO) throws Exception {
-        Product existingProduct = productRepository.findById(productImageDTO.getProductId())
+        Product existingProduct = productRepository.findById(productId)
                 .orElseThrow(() ->
                         new DataNotFoundException("Cannot find product with id: " + productImageDTO.getProductId()));
         ProductImage newProductImage = ProductImage.builder()
@@ -91,8 +93,8 @@ public class ProductService implements IProductService {
 
         // Không cho insert quá 5 ảnh cho 1 sản phẩm
         int size = productImageRepository.findByProductId(productId).size();
-        if (size > 5) {
-            throw new InvalidParamException("Number of images must be less than or equal to 5");
+        if (size > ProductImage.MAXIMUM_IMAGES_PER_PRODUCT) {
+            throw new InvalidParamException("Number of images must be less than or equal to " + ProductImage.MAXIMUM_IMAGES_PER_PRODUCT);
         }
 
         return productImageRepository.save(newProductImage);
