@@ -23,7 +23,7 @@ spring:
         format_sql: true
 
 api:
-  prefix: api/v1
+  prefix: /api/v1
 
 jwt:
   expiration: 2592000   # 30 days
