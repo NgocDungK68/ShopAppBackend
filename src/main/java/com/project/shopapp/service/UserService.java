@@ -1,6 +1,6 @@
 package com.project.shopapp.service;
 
-import com.project.shopapp.component.JwtTokenUtil;
+import com.project.shopapp.component.JwtTokenUtils;
 import com.project.shopapp.dto.UserDTO;
 import com.project.shopapp.exception.DataNotFoundException;
 import com.project.shopapp.exception.PermissionDenyException;
@@ -24,7 +24,7 @@ public class UserService implements IUserService {
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
-    private final JwtTokenUtil jwtTokenUtil;
+    private final JwtTokenUtils jwtTokenUtils;
     private final AuthenticationManager authenticationManager;
 
     @Override
@@ -84,6 +84,6 @@ public class UserService implements IUserService {
         );
         // authenticate with Java Spring security
         authenticationManager.authenticate(authenticationToken);
-        return jwtTokenUtil.generateToken(existingUser);
+        return jwtTokenUtils.generateToken(existingUser);
     }
 }
