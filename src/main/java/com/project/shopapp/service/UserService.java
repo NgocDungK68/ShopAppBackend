@@ -1,6 +1,7 @@
 package com.project.shopapp.service;
 
 import com.project.shopapp.component.JwtTokenUtils;
+import com.project.shopapp.component.LocalizationUtils;
 import com.project.shopapp.dto.UserDTO;
 import com.project.shopapp.exception.DataNotFoundException;
 import com.project.shopapp.exception.PermissionDenyException;
@@ -26,6 +27,7 @@ public class UserService implements IUserService {
     private final RoleRepository roleRepository;
     private final JwtTokenUtils jwtTokenUtils;
     private final AuthenticationManager authenticationManager;
+    private final LocalizationUtils localizationUtils;
 
     @Override
     public User createUser(UserDTO userDTO) throws Exception {
