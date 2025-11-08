@@ -3,7 +3,6 @@ package com.project.shopapp.filter;
 import com.project.shopapp.component.JwtTokenUtils;
 import com.project.shopapp.model.User;
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
@@ -33,7 +32,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
-                                    @NonNull FilterChain filterChain) throws ServletException, IOException {
+                                    @NonNull FilterChain filterChain) throws IOException {
         try {
             if (isBypassToken(request)) {
                 filterChain.doFilter(request, response);              // enable bypass
@@ -62,7 +61,6 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         } catch (Exception e) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
         }
-
     }
 
     private boolean isBypassToken(@NonNull HttpServletRequest request) {
