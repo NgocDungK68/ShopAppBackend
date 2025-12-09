@@ -6,4 +6,5 @@ import com.project.shopapp.model.User;
 public interface IUserService {
     User createUser(UserDTO userDTO) throws Exception;
     String login(String phoneNumber, String password) throws Exception;
+    User getUserDetailsFromToken(String token) throws Exception;
 }
