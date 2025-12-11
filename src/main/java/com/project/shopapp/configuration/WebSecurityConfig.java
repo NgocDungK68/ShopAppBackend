@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -20,10 +21,14 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.springframework.http.HttpMethod.*;
+import static org.springframework.http.HttpMethod.DELETE;
+import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.POST;
+import static org.springframework.http.HttpMethod.PUT;
 
 @Configuration
-@EnableWebSecurity
+@EnableWebSecurity(debug = true)
+@EnableMethodSecurity
 @EnableWebMvc
 @RequiredArgsConstructor
 public class WebSecurityConfig {
