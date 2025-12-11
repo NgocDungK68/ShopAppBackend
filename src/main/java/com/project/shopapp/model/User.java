@@ -29,6 +29,9 @@ public class User extends BaseEntity implements UserDetails {
     @Column(name = "phone_number", length = 10, nullable = false)
     private String phoneNumber;
 
+    @Column(name = "email", length = 255, nullable = true)
+    private String email;
+
     @Column(name = "address", length = 200)
     private String address;
 
@@ -42,10 +45,10 @@ public class User extends BaseEntity implements UserDetails {
     private Date dateOfBirth;
 
     @Column(name = "facebook_account_id")
-    private int facebookAccountId;
+    private String facebookAccountId;
 
     @Column(name = "google_account_id")
-    private int googleAccountId;
+    private String googleAccountId;
 
     @ManyToOne
     @JoinColumn(name = "role_id")
