@@ -47,7 +47,9 @@ public class ProductService implements IProductService {
     public Product getProductById(Long productId) throws Exception {
         Optional<Product> optionalProduct = productRepository.getDetailProduct(productId);
         if (optionalProduct.isPresent()) {
-            return optionalProduct.get();
+            Product product = optionalProduct.get();
+            validateAndFixThumbnail(product);
+            return product;
         }
         throw new DataNotFoundException("Cannot find product with id: " + productId);
     }
@@ -72,11 +74,25 @@ public class ProductService implements IProductService {
             Category existingCategory = categoryRepository.findById(productDTO.getCategoryId())
                     .orElseThrow(() ->
                             new DataNotFoundException("Cannot find category with id: " + productDTO.getCategoryId()));
-            existingProduct.setName(productDTO.getName());
-            existingProduct.setPrice(productDTO.getPrice());
+            if (productDTO.getName() != null && !productDTO.getName().isEmpty()) {
+                existingProduct.setName(productDTO.getName());
+            }
+
             existingProduct.setCategory(existingCategory);
-            existingProduct.setDescription(productDTO.getDescription());
-            existingProduct.setThumbnail(productDTO.getThumbnail());
+
+            if (productDTO.getPrice() >= 0) {
+                existingProduct.setPrice(productDTO.getPrice());
+            }
+
+            if (productDTO.getDescription() != null && !productDTO.getDescription().isEmpty()) {
+                existingProduct.setDescription(productDTO.getDescription());
+            }
+
+            if (productDTO.getThumbnail() != null && !productDTO.getThumbnail().isEmpty()) {
+                existingProduct.setThumbnail(productDTO.getThumbnail());
+            }
+
+            validateAndFixThumbnail(existingProduct);
             return productRepository.save(existingProduct);
         }
         return null;
@@ -109,6 +125,29 @@ public class ProductService implements IProductService {
             throw new InvalidParamException("Number of images must be less than or equal to " + ProductImage.MAXIMUM_IMAGES_PER_PRODUCT);
         }
 
+        if (existingProduct.getThumbnail() == null ) {
+            existingProduct.setThumbnail(newProductImage.getImageUrl());
+        }
+
         return productImageRepository.save(newProductImage);
+    }
+
+    private void validateAndFixThumbnail(Product product) {
+        if (product == null) return;
+
+        String currentThumbnail = product.getThumbnail();
+        List<ProductImage> productImages = productImageRepository.findByProductId(product.getId());
+
+        boolean isValid = currentThumbnail != null &&
+                productImages.stream().anyMatch(img -> img.getImageUrl().equals(currentThumbnail));
+
+        if (!isValid) {
+            if (!productImages.isEmpty()) {
+                product.setThumbnail(productImages.get(0).getImageUrl());
+            } else {
+                product.setThumbnail(null);
+            }
+            productRepository.save(product);
+        }
     }
 }

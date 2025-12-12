@@ -6,20 +6,29 @@ import com.project.shopapp.dto.UpdateUserDTO;
 import com.project.shopapp.dto.UserDTO;
 import com.project.shopapp.dto.UserLoginDTO;
 import com.project.shopapp.exception.DataNotFoundException;
+import com.project.shopapp.exception.ExpiredTokenException;
+import com.project.shopapp.exception.InvalidPasswordException;
 import com.project.shopapp.exception.PermissionDenyException;
 import com.project.shopapp.model.Role;
+import com.project.shopapp.model.Token;
 import com.project.shopapp.model.User;
 import com.project.shopapp.repository.RoleRepository;
+import com.project.shopapp.repository.TokenRepository;
 import com.project.shopapp.repository.UserRepository;
 import com.project.shopapp.utils.MessageKeys;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
+
+import static com.project.shopapp.utils.ValidationUtils.isValidEmail;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +39,7 @@ public class UserService implements IUserService {
     private final JwtTokenUtils jwtTokenUtils;
     private final AuthenticationManager authenticationManager;
     private final LocalizationUtils localizationUtils;
+    private final TokenRepository tokenRepository;
 
     @Override
     @Transactional
@@ -41,7 +51,7 @@ public class UserService implements IUserService {
         if (!userDTO.getEmail().isBlank() && userRepository.existsByEmail(userDTO.getEmail())) {
             throw new DataIntegrityViolationException("Email already exists");
         }
-        Role role =roleRepository.findById(userDTO.getRoleId())
+        Role role = roleRepository.findById(userDTO.getRoleId())
                 .orElseThrow(() -> new DataNotFoundException(
                         localizationUtils.getLocalizedMessage(MessageKeys.ROLE_DOES_NOT_EXISTS)));
 
@@ -143,7 +153,7 @@ public class UserService implements IUserService {
         // Update the password if it is provided in the DTO
         if (updatedUserDTO.getPassword() != null
                 && !updatedUserDTO.getPassword().isEmpty()) {
-            if(!updatedUserDTO.getPassword().equals(updatedUserDTO.getRetypePassword())) {
+            if (!updatedUserDTO.getPassword().equals(updatedUserDTO.getRetypePassword())) {
                 throw new DataNotFoundException("Password and retype password not the same");
             }
             String newPassword = updatedUserDTO.getPassword();
@@ -158,16 +168,38 @@ public class UserService implements IUserService {
     @Override
     public User getUserDetailsFromToken(String token) throws Exception {
         if (jwtTokenUtils.isTokenExpired(token)) {
-            throw new Exception("Token is expired");
+            throw new ExpiredTokenException("Token is expired");
         }
-
-        String phoneNumber = jwtTokenUtils.extractPhoneNumber(token);
-        Optional<User> user = userRepository.findByPhoneNumber(phoneNumber);
-
-        if (user.isPresent()) {
-            return user.get();
-        } else {
-            throw new Exception("User not found");
+        String subject = jwtTokenUtils.getSubject(token);
+        Optional<User> user;
+        user = userRepository.findByPhoneNumber(subject);
+        if (user.isEmpty() && isValidEmail(subject)) {
+            user = userRepository.findByEmail(subject);
         }
+        return user.orElseThrow(() -> new Exception("User not found"));
+    }
+
+    @Override
+    public User getUserDetailsFromRefreshToken(String refreshToken) throws Exception {
+        Token existingToken = tokenRepository.findByRefreshToken(refreshToken);
+        return getUserDetailsFromToken(existingToken.getToken());
+    }
+
+    @Override
+    public Page<User> findAll(String keyword, Pageable pageable) throws Exception {
+        return userRepository.findAll(keyword, pageable);
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(Long userId, String newPassword) throws InvalidPasswordException, DataNotFoundException {
+        User existingUser = userRepository.findById(userId)
+                .orElseThrow(() -> new DataNotFoundException("User not found"));
+        String encodedPassword = passwordEncoder.encode(newPassword);
+        existingUser.setPassword(encodedPassword);
+        userRepository.save(existingUser);
+        //reset password => clear token
+        List<Token> tokens = tokenRepository.findByUser(existingUser);
+        tokenRepository.deleteAll(tokens);
     }
 }

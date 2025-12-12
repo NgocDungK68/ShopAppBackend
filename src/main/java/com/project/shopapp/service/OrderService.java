@@ -12,6 +12,7 @@ import com.project.shopapp.repository.OrderDetailRepository;
 import com.project.shopapp.repository.OrderRepository;
 import com.project.shopapp.repository.ProductRepository;
 import com.project.shopapp.repository.UserRepository;
+import com.project.shopapp.response.OrderResponse;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -34,6 +35,7 @@ public class OrderService implements IOrderService {
     private final ModelMapper modelMapper;
 
     @Override
+    @Transactional
     public Order createOrder(OrderDTO orderDTO) throws Exception {
         // Tìm xem userId có tồn tại không
         User user = userRepository.findById(orderDTO.getUserId())
@@ -56,7 +58,6 @@ public class OrderService implements IOrderService {
         order.setShippingDate(shippingDate);
         order.setActive(true);
         order.setTotalMoney(orderDTO.getTotalMoney());
-        orderRepository.save(order);
 
         // Tạo danh sah các đối tượng OrderDetail từ cartItems
         List<OrderDetail> orderDetails = new ArrayList<>();
@@ -83,12 +84,13 @@ public class OrderService implements IOrderService {
         }
 
         orderDetailRepository.saveAll(orderDetails);
+        orderRepository.save(order);
         return order;
     }
 
     @Override
-    public Order getOrder(Long id) {
-        return orderRepository.findById(id).orElse(null);
+    public Order getOrderById(Long orderId) {
+        return orderRepository.findById(orderId).orElse(null);
     }
 
     @Override
@@ -100,10 +102,56 @@ public class OrderService implements IOrderService {
         User existingUser = userRepository.findById(orderDTO.getUserId())
                 .orElseThrow(() -> new DataNotFoundException("Cannot find user with id: " + id));
 
-        modelMapper.typeMap(OrderDTO.class, Order.class)
-                .addMappings(mapper -> mapper.skip(Order::setId));
+        if (orderDTO.getUserId() != null) {
+            User user = new User();
+            user.setId(orderDTO.getUserId());
+            order.setUser(user);
+        }
 
-        modelMapper.map(orderDTO, order);
+        if (orderDTO.getFullName() != null && !orderDTO.getFullName().trim().isEmpty()) {
+            order.setFullName(orderDTO.getFullName().trim());
+        }
+
+        if (orderDTO.getEmail() != null && !orderDTO.getEmail().trim().isEmpty()) {
+            order.setEmail(orderDTO.getEmail().trim());
+        }
+
+        if (orderDTO.getPhoneNumber() != null && !orderDTO.getPhoneNumber().trim().isEmpty()) {
+            order.setPhoneNumber(orderDTO.getPhoneNumber().trim());
+        }
+
+        if (orderDTO.getStatus() != null && !orderDTO.getStatus().trim().isEmpty()) {
+            order.setStatus(orderDTO.getStatus().trim());
+        }
+
+        if (orderDTO.getAddress() != null && !orderDTO.getAddress().trim().isEmpty()) {
+            order.setAddress(orderDTO.getAddress().trim());
+        }
+
+        if (orderDTO.getNote() != null && !orderDTO.getNote().trim().isEmpty()) {
+            order.setNote(orderDTO.getNote().trim());
+        }
+
+        if (orderDTO.getTotalMoney() != null) {
+            order.setTotalMoney(orderDTO.getTotalMoney());
+        }
+
+        if (orderDTO.getShippingMethod() != null && !orderDTO.getShippingMethod().trim().isEmpty()) {
+            order.setShippingMethod(orderDTO.getShippingMethod().trim());
+        }
+
+        if (orderDTO.getShippingAddress() != null && !orderDTO.getShippingAddress().trim().isEmpty()) {
+            order.setShippingAddress(orderDTO.getShippingAddress().trim());
+        }
+
+        if (orderDTO.getShippingDate() != null) {
+            order.setShippingDate(orderDTO.getShippingDate());
+        }
+
+        if (orderDTO.getPaymentMethod() != null && !orderDTO.getPaymentMethod().trim().isEmpty()) {
+            order.setPaymentMethod(orderDTO.getPaymentMethod().trim());
+        }
+
         order.setUser(existingUser);
         return orderRepository.save(order);
     }
@@ -121,12 +169,53 @@ public class OrderService implements IOrderService {
     }
 
     @Override
-    public List<Order> findByUserId(Long userId) {
-        return orderRepository.findByUserId(userId);
+    public List<OrderResponse> findByUserId(Long userId) {
+        List<Order> orders = orderRepository.findByUserId(userId);
+        return orders.stream().map(OrderResponse::fromOrder).toList();
     }
 
     @Override
     public Page<Order> getOrdersByKeyword(String keyword, Pageable pageable) {
         return orderRepository.findByKeyword(keyword, pageable);
+    }
+
+    @Override
+    @Transactional
+    public Order updateOrderStatus(Long id, String status) throws DataNotFoundException {
+        // Tìm đơn hàng theo ID
+        Order order = getOrderById(id); // Sẽ tìm theo ID trước, sau đó tìm theo vnpTxnRef
+
+        // Kiểm tra trạng thái hợp lệ
+        if (status == null || status.trim().isEmpty()) {
+            throw new IllegalArgumentException("Status cannot be null or empty");
+        }
+
+        // Kiểm tra xem trạng thái có nằm trong danh sách hợp lệ không
+        if (!OrderStatus.VALID_STATUSES.contains(status)) {
+            throw new IllegalArgumentException("Invalid status: " + status);
+        }
+
+        // Kiểm tra logic chuyển đổi trạng thái
+        String currentStatus = order.getStatus();
+        if (currentStatus.equals(OrderStatus.DELIVERED) && !status.equals(OrderStatus.CANCELLED)) {
+            throw new IllegalArgumentException("Cannot change status from DELIVERED to " + status);
+        }
+
+        if (currentStatus.equals(OrderStatus.CANCELLED)) {
+            throw new IllegalArgumentException("Cannot change status of a CANCELLED order");
+        }
+
+        if (status.equals(OrderStatus.CANCELLED)) {
+            // Kiểm tra xem đơn hàng có thể bị hủy không
+            if (!currentStatus.equals(OrderStatus.PENDING)) {
+                throw new IllegalArgumentException("Order can only be cancelled from PENDING status");
+            }
+        }
+
+        // Cập nhật trạng thái đơn hàng
+        order.setStatus(status);
+
+        // Lưu đơn hàng đã cập nhật
+        return orderRepository.save(order);
     }
 }

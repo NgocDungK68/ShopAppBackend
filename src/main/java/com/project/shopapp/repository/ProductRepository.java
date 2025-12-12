@@ -1,5 +1,6 @@
 package com.project.shopapp.repository;
 
+import com.project.shopapp.model.Category;
 import com.project.shopapp.model.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,6 +16,7 @@ import java.util.Optional;
 public interface ProductRepository extends JpaRepository<Product,Long> {
     boolean existsByName(String name);
     Page<Product> findAll(Pageable pageable);
+    List<Product> findByCategory(Category category);
 
     @Query("SELECT p FROM Product p WHERE " +
             "(:categoryId IS NULL OR :categoryId = 0 OR p.category.id = :categoryId) " +

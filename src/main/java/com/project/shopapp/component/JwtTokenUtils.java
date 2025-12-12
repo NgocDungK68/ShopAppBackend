@@ -83,6 +83,10 @@ public class JwtTokenUtils {
         return extractClaim(token, Claims::getSubject);
     }
 
+    public String getSubject(String token) {
+        return  extractClaim(token, Claims::getSubject);
+    }
+
     public boolean validateToken(String token, UserDetails userDetails) {
         String phoneNumber = extractPhoneNumber(token);
         return phoneNumber.equals(userDetails.getUsername()) && !isTokenExpired(token);
