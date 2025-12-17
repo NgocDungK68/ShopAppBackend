@@ -56,9 +56,9 @@ public class UserService implements IUserService {
                         localizationUtils.getLocalizedMessage(MessageKeys.ROLE_DOES_NOT_EXISTS)));
 
 
-        if (role.getName().equalsIgnoreCase(Role.ADMIN)) {
-            throw new PermissionDenyException("Registering admin accounts is not allowed");
-        }
+//        if (role.getName().equalsIgnoreCase(Role.ADMIN)) {
+//            throw new PermissionDenyException("Registering admin accounts is not allowed");
+//        }
         //convert from userDTO => user
         User newUser = User.builder()
                 .fullName(userDTO.getFullName())

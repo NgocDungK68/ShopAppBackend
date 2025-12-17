@@ -28,7 +28,6 @@ import static org.springframework.http.HttpMethod.PUT;
 
 @Configuration
 @EnableWebSecurity(debug = true)
-@EnableMethodSecurity
 @EnableWebMvc
 @RequiredArgsConstructor
 public class WebSecurityConfig {
